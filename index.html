@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KNOBLAB</title>
+<style>
+  :root{
+    --blue:#0000FF;
+    --black:#000000;
+    --white:#FFFFFF;
+    --hair:0.5px solid #000;
+    --rule:1px solid #000;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:var(--white); color:var(--black);
+    font-size:11px; line-height:1.35;
+    -webkit-font-smoothing:antialiased;
+    display:grid; grid-template-columns:320px 1fr; height:100vh;
+  }
+
+  /* ---------- control column ---------- */
+  #panel{border-right:var(--rule); overflow-y:auto; display:flex; flex-direction:column}
+  #brand{
+    padding:14px 16px 12px; border-bottom:var(--rule);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  #brand h1{font-size:15px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase}
+  #brand span{font-size:9px; letter-spacing:0.18em; text-transform:uppercase}
+
+  .group{border-bottom:var(--rule); padding:12px 16px 14px}
+  .group > h2{
+    font-size:9px; font-weight:700; letter-spacing:0.2em;
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .group.hidden{display:none}
+
+  .ctl{margin-bottom:11px}
+  .ctl:last-child{margin-bottom:0}
+  .ctl.hidden{display:none}
+  .ctl .row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px}
+  .ctl label{font-size:10px; letter-spacing:0.06em; text-transform:uppercase}
+  .ctl output{
+    font-size:10px; font-weight:700; font-variant-numeric:tabular-nums;
+    color:var(--blue);
+  }
+
+  input[type=range]{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:11px; background:transparent; display:block; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:1px; background:var(--black)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:9px; height:9px; margin-top:-4px;
+    background:var(--blue); border:none; border-radius:0;
+  }
+  input[type=range]::-moz-range-track{height:1px; background:var(--black)}
+  input[type=range]::-moz-range-thumb{
+    width:9px; height:9px; background:var(--blue); border:none; border-radius:0;
+  }
+
+  /* segmented control */
+  .seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; border:var(--rule); margin-bottom:11px}
+  .seg button{
+    border:none; border-right:var(--hair); border-radius:0; background:var(--white);
+    color:var(--black); padding:6px 0; font-family:inherit; font-size:9px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;
+  }
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--blue); color:var(--white)}
+  .seg button:hover:not(.on){background:#eee}
+
+  .toggle{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin-bottom:11px}
+  .toggle .box{width:11px; height:11px; border:1px solid var(--black); flex:0 0 auto}
+  .toggle input{display:none}
+  .toggle input:checked + .box{background:var(--blue); border-color:var(--blue)}
+  .toggle span{font-size:10px; letter-spacing:0.06em; text-transform:uppercase}
+
+  /* stack editor */
+  #stack{border:var(--rule); margin-bottom:8px}
+  .srow{display:grid; grid-template-columns:22px 1fr 22px; align-items:stretch; border-bottom:var(--hair)}
+  .srow:last-child{border-bottom:none}
+  .srow .n{font-size:9px; font-weight:700; color:var(--blue); display:flex; align-items:center;
+           justify-content:center; border-right:var(--hair); font-variant-numeric:tabular-nums}
+  .srow select{
+    border:none; border-radius:0; background:var(--white); font-family:inherit; font-size:10px;
+    letter-spacing:0.04em; padding:6px 6px; appearance:none; -webkit-appearance:none; width:100%;
+  }
+  .srow select:focus{outline:none; color:var(--blue)}
+  .srow .x{border:none; border-left:var(--hair); background:var(--white); color:var(--black);
+           font-family:inherit; font-size:12px; cursor:pointer; border-radius:0; padding:0}
+  .srow .x:hover{background:var(--blue); color:var(--white)}
+  #stack-note{font-size:9px; letter-spacing:0.04em; line-height:1.5; margin-bottom:8px}
+  .btn-line{
+    width:100%; border:var(--rule); background:var(--white); color:var(--black); padding:6px;
+    font-family:inherit; font-size:9px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase;
+    cursor:pointer; border-radius:0; margin-bottom:11px;
+  }
+  .btn-line:hover{background:var(--black); color:var(--white)}
+
+  /* ---------- export ---------- */
+  #export{padding:12px 16px 16px; margin-top:auto}
+  #name{
+    width:100%; border:none; border-bottom:var(--rule); padding:4px 0 5px;
+    font-family:inherit; font-size:11px; letter-spacing:0.06em;
+    background:transparent; margin-bottom:10px; border-radius:0;
+  }
+  #name:focus{outline:none; border-bottom-color:var(--blue); color:var(--blue)}
+  #go{
+    width:100%; padding:11px; border:none; border-radius:0; cursor:pointer;
+    background:var(--blue); color:var(--white);
+    font-family:inherit; font-size:10px; font-weight:700;
+    letter-spacing:0.18em; text-transform:uppercase;
+  }
+  #go:hover{background:var(--black)}
+  #go:disabled{background:#ccc; cursor:default}
+  #hint{margin-top:7px; font-size:9px; letter-spacing:0.04em; line-height:1.5}
+
+  /* ---------- viewport ---------- */
+  #stage{position:relative; overflow:hidden}
+  #canvas{display:block; width:100%; height:100%}
+
+  #readout{
+    position:absolute; top:0; left:0; right:0;
+    border-bottom:var(--rule); background:var(--white);
+    display:grid; grid-template-columns:repeat(6,1fr);
+  }
+  #readout div{padding:9px 12px; border-right:var(--hair); min-width:0}
+  #readout div:last-child{border-right:none}
+  #readout dt{font-size:8px; letter-spacing:0.16em; text-transform:uppercase; margin-bottom:3px}
+  #readout dd{font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--blue);
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  #readout dd.warn{color:var(--black); text-decoration:underline}
+  #r-stack{font-size:9px; font-weight:400; color:var(--black); line-height:1.4; white-space:normal}
+
+  #status{
+    position:absolute; left:0; bottom:0; right:0;
+    border-top:var(--rule); background:var(--white);
+    padding:7px 12px; font-size:9px; letter-spacing:0.12em; text-transform:uppercase;
+    display:flex; justify-content:space-between; gap:12px;
+  }
+  #err{color:var(--blue); font-weight:700; text-align:right}
+  .busy{animation:blink 0.7s steps(2,start) infinite}
+  @keyframes blink{to{opacity:0.25}}
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <div id="brand"><h1>Knoblab</h1><span>Captive-nut knobs · M4–M12</span></div>
+
+  <div class="group">
+    <h2>Fastener</h2>
+    <div class="seg" id="seg-size"></div>
+    <div id="stack"></div>
+    <div id="stack-note">Opening first. Item 1 sits against the work; the last item is deepest. A bolt head must be last.</div>
+    <button class="btn-line" id="add">+ Add item</button>
+    <div class="seg" id="seg-material"></div>
+    <div id="g-fit"></div>
+  </div>
+
+  <div class="group">
+    <h2>Bore</h2>
+    <label class="toggle">
+      <input type="checkbox" id="through" checked><span class="box"></span><span>Through bore (rod exits grip face)</span>
+    </label>
+    <div id="g-bore"></div>
+  </div>
+
+  <div class="group">
+    <h2>Body</h2>
+    <div class="seg" id="seg-family"></div>
+    <div id="g-body"></div>
+  </div>
+
+  <div class="group fam" id="grp-cylinder"><h2>Cylinder</h2><div id="g-cylinder"></div></div>
+  <div class="group fam" id="grp-lobed"><h2>Lobed</h2><div id="g-lobed"></div></div>
+  <div class="group fam" id="grp-wing"><h2>Wing</h2><div id="g-wing"></div></div>
+  <div class="group fam" id="grp-metaball"><h2>Metaball</h2><div id="g-metaball"></div></div>
+
+  <div id="export">
+    <input id="name" value="knob" spellcheck="false" placeholder="filename">
+    <button id="go">Export files</button>
+    <div id="hint">ZIP: STEP + STL + 3MF, parameters, spec, script.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <dl id="readout">
+    <div><dt>Envelope</dt><dd id="r-env">—</dd></div>
+    <div><dt>Pocket depth</dt><dd id="r-depth">—</dd></div>
+    <div><dt>Wall / min</dt><dd id="r-wall">—</dd></div>
+    <div><dt>Bore</dt><dd id="r-bore">—</dd></div>
+    <div><dt>Volume</dt><dd id="r-vol">—</dd></div>
+    <div><dt>Stack</dt><dd id="r-stack">—</dd></div>
+  </dl>
+  <canvas id="canvas"></canvas>
+  <div id="status"><span id="msg">Loading kernel…</span><span id="err"></span></div>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+/* ---------- slider definitions: [key, label, min, max, step, group] ---------- */
+const CONTROLS = [
+  ['clear_af','Clearance across flats',0,0.6,0.05,'g-fit'],
+  ['clear_depth','Clearance depth / item',0,0.6,0.05,'g-fit'],
+  ['corner_r','Hex corner radius',0,1.2,0.1,'g-fit'],
+  ['lead_in','Lead-in chamfer',0,2,0.1,'g-fit'],
+  ['extra_depth','Spare depth',0,20,0.5,'g-fit'],
+
+  ['stud_extra','Stud past stack (blind)',0,20,0.5,'g-bore'],
+
+  ['diameter','Diameter',15,80,0.5,'g-body'],
+  ['cap','Cap (grip face)',1.2,12,0.2,'g-body'],
+  ['edge_chamfer','Edge chamfer',0,3,0.1,'g-body'],
+
+  ['flutes','Flutes',0,24,1,'g-cylinder'],
+  ['flute_r','Flute radius',0.5,6,0.1,'g-cylinder'],
+  ['flute_depth','Flute depth',0,3,0.1,'g-cylinder'],
+
+  ['lobes','Lobes',3,10,1,'g-lobed'],
+  ['lobe_depth','Lobe depth',1,15,0.5,'g-lobed'],
+  ['lobe_sharp','Lobe sharpness',0.5,3,0.1,'g-lobed'],
+
+  ['arms','Arms',2,4,1,'g-wing'],
+  ['arm_w','Arm width',4,30,0.5,'g-wing'],
+  ['hub','Hub Ø (0 = auto)',0,60,0.5,'g-wing'],
+
+  ['blobs','Blobs',1,16,1,'g-metaball'],
+  ['blob_r','Blob radius',2,15,0.5,'g-metaball'],
+  ['blob_k','Blend',0,15,0.5,'g-metaball'],
+  ['blob_jitter','Jitter',0,1,0.05,'g-metaball'],
+  ['seed','Seed',1,99,1,'g-metaball'],
+  ['voxel','Preview voxel',0.2,0.8,0.05,'g-metaball'],
+  ['voxel_export','Export voxel',0.1,0.4,0.05,'g-metaball'],
+];
+
+/* family defaults as a fraction of diameter - applied on size change */
+const SCALE = {
+  flute_r: 0.05, flute_depth: 0.025,
+  lobe_depth: 0.13,
+  arm_w: 0.3,
+  blob_r: 0.14, blob_k: 0.15,
+};
+
+const els = {};
+const state = {};
+let CAT = null;
+let stackIds = [];
+
+const msg = document.getElementById('msg');
+const errEl = document.getElementById('err');
+
+/* ---------- panel builders ---------- */
+function slider(key,label,min,max,step,group){
+  const wrap = document.createElement('div');
+  wrap.className = 'ctl'; wrap.id = 'ctl-' + key;
+  wrap.innerHTML =
+    `<div class="row"><label for="c-${key}">${label}</label><output id="o-${key}"></output></div>
+     <input type="range" id="c-${key}" min="${min}" max="${max}" step="${step}">`;
+  document.getElementById(group).appendChild(wrap);
+  const input = wrap.querySelector('input');
+  els[key] = { input, out: wrap.querySelector('output'), step, wrap };
+  input.addEventListener('input', () => {
+    state[key] = parseFloat(input.value);
+    paintValue(key);
+    schedule();
+  });
+}
+
+function setSlider(key, v){
+  state[key] = v;
+  els[key].input.value = v;
+  paintValue(key);
+}
+
+function paintValue(key){
+  const { input, out, step } = els[key];
+  const v = parseFloat(input.value);
+  out.textContent = Number.isInteger(step) ? v : v.toFixed(step < 0.1 ? 2 : 1);
+}
+
+function segmented(id, options, current, onPick){
+  const host = document.getElementById(id);
+  host.innerHTML = '';
+  for (const [val,label] of options){
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.dataset.val = val;
+    if (String(val) === String(current)) b.classList.add('on');
+    b.addEventListener('click', () => {
+      host.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      onPick(val);
+    });
+    host.appendChild(b);
+  }
+}
+
+function paintStack(){
+  const host = document.getElementById('stack');
+  host.innerHTML = '';
+  stackIds.forEach((id, i) => {
+    const row = document.createElement('div');
+    row.className = 'srow';
+    const sel = document.createElement('select');
+    for (const [k,label] of Object.entries(CAT.items)){
+      const o = document.createElement('option');
+      o.value = k; o.textContent = label; if (k === id) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.addEventListener('change', () => { stackIds[i] = sel.value; syncStack(); });
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = i + 1;
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '×';
+    x.title = 'Remove';
+    x.addEventListener('click', () => { stackIds.splice(i,1); paintStack(); syncStack(); });
+    row.append(n, sel, x);
+    host.appendChild(row);
+  });
+}
+
+function syncStack(){ state.stack = stackIds.join(','); schedule(); }
+
+function applySizeDefaults(size){
+  const D = CAT.knob_dia[String(size)];
+  setSlider('diameter', D);
+  for (const [k,f] of Object.entries(SCALE)){
+    const s = els[k].step;
+    const v = Math.round((D * f) / s) * s;
+    setSlider(k, Math.min(parseFloat(els[k].input.max), Math.max(parseFloat(els[k].input.min), v)));
+  }
+}
+
+function applyMaterial(m){
+  state.material = m;
+  setSlider('clear_af', CAT.materials[m].af);
+  setSlider('clear_depth', CAT.materials[m].depth);
+}
+
+function showFamily(f){
+  state.family = f;
+  document.querySelectorAll('.group.fam').forEach(g => g.classList.add('hidden'));
+  document.getElementById('grp-' + f).classList.remove('hidden');
+  document.getElementById('hint').textContent = f === 'metaball'
+    ? 'ZIP: STL + 3MF (implicit surface, no STEP), parameters, spec, script.'
+    : 'ZIP: STEP + STL + 3MF, parameters, spec, script.';
+}
+
+async function boot(){
+  const j = await (await fetch('/defaults')).json();
+  CAT = j.catalog;
+  const d = j.defaults;
+
+  for (const row of CONTROLS) slider(...row);
+  for (const [key,label,min,max,step] of CONTROLS) setSlider(key, d[key]);
+
+  state.size = d.size;
+  segmented('seg-size', CAT.sizes.map(s => [s, 'M' + s]), d.size, v => {
+    state.size = v; applySizeDefaults(v); schedule();
+  });
+
+  stackIds = d.stack.split(',').map(s => s.trim()).filter(Boolean);
+  state.stack = stackIds.join(',');
+  paintStack();
+  document.getElementById('add').addEventListener('click', () => {
+    stackIds.push(stackIds.length ? stackIds[stackIds.length-1] : 'hex_iso');
+    paintStack(); syncStack();
+  });
+
+  segmented('seg-material', Object.entries(CAT.materials).map(([k,v]) => [k, v.label]), d.material,
+            v => { applyMaterial(v); schedule(); });
+  state.material = d.material;
+
+  state.through = d.through;
+  const thr = document.getElementById('through');
+  thr.checked = d.through;
+  const paintBore = () => els.stud_extra.wrap.classList.toggle('hidden', state.through);
+  thr.addEventListener('change', () => { state.through = thr.checked; paintBore(); schedule(); });
+  paintBore();
+
+  segmented('seg-family', CAT.families.map(f => [f, f]), d.family, v => { showFamily(v); schedule(); });
+  showFamily(d.family);
+
+  applySizeDefaults(d.size);
+  rebuild();
+}
+
+/* ---------- three.js ---------- */
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+
+const camera = new THREE.PerspectiveCamera(38, 1, 1, 5000);
+camera.position.set(60,-70,55);
+camera.up.set(0,0,1);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 2.0);
+keyL.position.set(1,-1.4,2); scene.add(keyL);
+const fill = new THREE.DirectionalLight(0xffffff, 0.7);
+fill.position.set(-1.2,0.8,0.4); scene.add(fill);
+
+const material = new THREE.MeshStandardMaterial({
+  color:0x0000ff, metalness:0.0, roughness:0.62, flatShading:false
+});
+const edgeMat = new THREE.LineBasicMaterial({ color:0x000000 });
+
+let mesh = null, edges = null;
+const loader = new STLLoader();
+
+function resize(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w || canvas.height !== h){
+    renderer.setSize(w,h,false);
+    camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+}
+function tick(){ resize(); controls.update(); renderer.render(scene,camera); requestAnimationFrame(tick); }
+tick();
+
+function show(buffer, firstLoad, drawEdges){
+  const geo = loader.parse(buffer);
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  const c = new THREE.Vector3();
+  geo.boundingBox.getCenter(c);
+  geo.translate(-c.x,-c.y,-c.z);
+
+  if (mesh){ scene.remove(mesh); mesh.geometry.dispose(); }
+  if (edges){ scene.remove(edges); edges.geometry.dispose(); edges = null; }
+
+  mesh = new THREE.Mesh(geo, material);
+  scene.add(mesh);
+  if (drawEdges){
+    edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 24), edgeMat);
+    scene.add(edges);
+  }
+
+  if (firstLoad){
+    const s = geo.boundingBox.getSize(new THREE.Vector3()).length();
+    camera.position.set(s*0.9,-s*1.0,s*0.8);
+    controls.target.set(0,0,0);
+  }
+}
+
+/* ---------- request cycle ---------- */
+let pending = null, inFlight = false, first = true;
+
+function schedule(){
+  clearTimeout(pending);
+  pending = setTimeout(rebuild, 180);
+}
+
+async function rebuild(){
+  if (inFlight){ schedule(); return; }
+  inFlight = true;
+  msg.textContent = 'Building';
+  msg.classList.add('busy');
+  try{
+    const res = await fetch('/preview.stl?' + new URLSearchParams(state));
+    if (!res.ok){
+      const j = await res.json();
+      errEl.textContent = j.errors.join(' / ');
+      msg.textContent = 'Invalid parameters';
+      msg.classList.remove('busy');
+      inFlight = false; return;
+    }
+    const stats = JSON.parse(res.headers.get('X-Stats'));
+    errEl.textContent = (stats.warnings || []).join(' / ');
+    const buf = await res.arrayBuffer();
+    show(buf, first, state.family !== 'metaball'); first = false;
+    paintStats(stats);
+    msg.textContent = 'Ready · print as shown, grip face down, no supports';
+  }catch(e){
+    errEl.textContent = 'Server unreachable';
+    msg.textContent = 'Error';
+  }
+  msg.classList.remove('busy');
+  inFlight = false;
+}
+
+function paintStats(s){
+  const d = s.derived, b = s.part.bbox;
+  document.getElementById('r-env').textContent   = `${b[0]}×${b[1]}×${b[2]}`;
+  document.getElementById('r-depth').textContent = `${d.pocket_depth} mm`;
+  const w = document.getElementById('r-wall');
+  w.textContent = `${d.wall} / ${d.wall_min} mm`;
+  w.classList.toggle('warn', d.wall < d.wall_min);
+  document.getElementById('r-bore').textContent  = d.bore ? `Ø${d.bore}` : 'blind';
+  document.getElementById('r-vol').textContent   = `${s.part.volume.toFixed(1)} cm³`;
+  document.getElementById('r-stack').textContent = d.stack.join(' → ');
+}
+
+/* ---------- export ---------- */
+document.getElementById('go').addEventListener('click', () => {
+  const name = document.getElementById('name').value || 'knob';
+  const q = new URLSearchParams({ ...state, name });
+  window.location = '/export?' + q;
+});
+
+boot();
+</script>
+</body>
+</html>
